@@ -2,6 +2,9 @@ package highlighting.regex;
 
 import highlighting.core.HighlightRegion;
 import highlighting.core.SyntaxHighlighter;
+import highlighting.presets.MiniJavaTokens;
+
+import java.util.ArrayList;
 import java.util.List;
 
 // TODO: Implement a simple regex-based highlighting strategy. Unlike the scanning approach, this
@@ -13,19 +16,38 @@ import java.util.List;
 // the naive regex-based strategy.
 public class RegexHighlighter extends SyntaxHighlighter {
 
-  // TODO: For each token, find all matches of its pattern in the input text, convert them into
-  // {@code HighlightRegion}s, and combine all of these regions into a single list.
-  @Override
-  public List<HighlightRegion> collectMatches(String text) {
-    throw new UnsupportedOperationException("not implemented yet");
-  }
+    // TODO: For each token, find all matches of its pattern in the input text, convert them into
+    // {@code HighlightRegion}s, and combine all of these regions into a single list.
+    @Override
+    public List<HighlightRegion> collectMatches(String text) {
+        List<HighlightRegion> highlightRegions = new ArrayList<>();
+        List<Token> tokenList = MiniJavaTokens.defaultTokens();
+        for(Token token : tokenList) {
+            highlightRegions.addAll(token.test(text));
+        }
+        return  highlightRegions;
+    }
 
-  // TODO: Resolve overlapping regions. Assume that {@code regions} has been normalised and sorted.
-  // For any overlapping regions, keep the one that appears first in this list (which reflects the
-  // token order) and discard all later overlapping regions. Longer regions that start at the same
-  // position are preferred because of the sorting in {@code normalize}.
-  @Override
-  public List<HighlightRegion> resolveConflicts(List<HighlightRegion> regions) {
-    throw new UnsupportedOperationException("not implemented yet");
-  }
+    // TODO: Resolve overlapping regions. Assume that {@code regions} has been normalised and sorted.
+    // For any overlapping regions, keep the one that appears first in this list (which reflects the
+    // token order) and discard all later overlapping regions. Longer regions that start at the same
+    // position are preferred because of the sorting in {@code normalize}.
+    @Override
+    public List<HighlightRegion> resolveConflicts(List<HighlightRegion> regions) {
+        List<HighlightRegion> endRegions = new ArrayList<>();
+        for(HighlightRegion region : regions) {
+            boolean overlaps = false;
+            for(HighlightRegion endRegion : endRegions) {
+                if(region.start() < endRegion.end() && region.end() > endRegion.start()) {
+                    overlaps = true;
+                    break;
+                }
+            }
+            if(!overlaps) {
+                endRegions.add(region);
+            }
+        }
+        return endRegions;
+    }
 }
+
