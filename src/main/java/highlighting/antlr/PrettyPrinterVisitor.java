@@ -48,6 +48,26 @@ public final class PrettyPrinterVisitor extends MiniJavaBaseVisitor<Void> {
     // - import declarations (one per line),
     // - type declarations (one after another),
     // with sensible blank lines between these parts.
+    if (ctx.packageDecl() != null) {
+      visit(ctx.packageDecl());
+      nl();
+      nl();
+    }
+
+    for (var importDecl : ctx.importDecl()) {
+      visit(importDecl);
+      nl();
+    }
+
+    if (!ctx.importDecl().isEmpty()) {
+      nl();
+    }
+
+    for (var typeDecl : ctx.typeDecl()) {
+      visit(typeDecl);
+      nl();
+    }
+
     return null;
   }
 
@@ -58,6 +78,16 @@ public final class PrettyPrinterVisitor extends MiniJavaBaseVisitor<Void> {
     // - opening and closing brace,
     // - one member declaration per line,
     // - members indented relative to the class.
+    write(" {");
+    nl();
+    currentIndent++;
+    for (var declaration : ctx.classBodyDeclaration()) {
+      visit(declaration);
+      nl();
+    }
+
+    currentIndent--;
+    write("}");
     return null;
   }
 
@@ -68,6 +98,15 @@ public final class PrettyPrinterVisitor extends MiniJavaBaseVisitor<Void> {
     // - opening and closing brace,
     // - one blockStatement per line,
     // - nested blocks indented further.
+    write(" {");
+    nl();
+    currentIndent++;
+    for (var statement : ctx.blockStatement()) {
+      visit(statement);
+    }
+
+    currentIndent--;
+    write("}");
     return null;
   }
 
@@ -76,6 +115,76 @@ public final class PrettyPrinterVisitor extends MiniJavaBaseVisitor<Void> {
     // TODO:
     // Ensure that each statement (if/while/return/block/...) ends up
     // on exactly one line, with proper indentation for nested statements.
+    if (ctx.block() != null) {
+      visit(ctx.block());
+      nl();
+      return null;
+    }
+
+    if (ctx.RETURN() != null) {
+      visitChildren(ctx);
+      nl();
+      return null;
+    }
+
+    if (ctx.WHILE() != null) {
+      write("while (");
+      visit(ctx.expression());
+      write(")");
+
+      var body = ctx.statement(0);
+
+      if (body.block() != null) {
+        visit(body);
+      } else {
+        nl();
+        currentIndent++;
+        visit(body);
+        currentIndent--;
+      }
+
+      return null;
+    }
+
+    if (ctx.IF() != null) {
+      write("if (");
+      visit(ctx.expression());
+      write(")");
+
+      var thenStatement = ctx.statement(0);
+
+      if (thenStatement.block() != null) {
+        visit(thenStatement);
+      } else {
+        nl();
+        currentIndent++;
+        visit(thenStatement);
+        currentIndent--;
+      }
+
+      if (ctx.ELSE() != null) {
+        write("else");
+
+        var elseStatement = ctx.statement(1);
+
+        if (elseStatement.block() != null) {
+          visit(elseStatement);
+        } else if (elseStatement.IF() != null) {
+          write(" ");
+          visit(elseStatement);
+        } else {
+          nl();
+          currentIndent++;
+          visit(elseStatement);
+          currentIndent--;
+        }
+      }
+
+      return null;
+    }
+
+    visitChildren(ctx);
+    nl();
     return null;
   }
 

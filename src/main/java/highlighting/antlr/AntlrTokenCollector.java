@@ -2,7 +2,9 @@ package highlighting.antlr;
 
 import highlighting.core.HighlightRegion;
 import highlighting.core.SyntaxHighlighter;
+import highlighting.presets.MiniJavaColours;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 import org.antlr.v4.runtime.*;
 
@@ -31,6 +33,78 @@ public class AntlrTokenCollector extends SyntaxHighlighter {
   // present).
   @Override
   public List<HighlightRegion> collectMatches(String text) {
-    throw new UnsupportedOperationException("not implemented yet");
+    List<HighlightRegion> matches = new ArrayList<>();
+    var input = CharStreams.fromString(text);
+    var lexer = new MiniJavaLexer(input);
+    var tokens = new CommonTokenStream(lexer);
+    tokens.fill();
+    for (int i = 0; i < tokens.size(); i++) {
+      var current = tokens.get(i);
+      if (current.getType() != Token.EOF) {
+
+        Color color = null;
+
+        switch (current.getType()) {
+          case MiniJavaLexer.STRING_LITERAL:
+            color = MiniJavaColours.STRING_LITERAL_COLOUR;
+            break;
+
+          case MiniJavaLexer.PACKAGE,
+          MiniJavaLexer.IMPORT,
+          MiniJavaLexer.CLASS,
+          MiniJavaLexer.PUBLIC,
+          MiniJavaLexer.PRIVATE,
+          MiniJavaLexer.FINAL,
+          MiniJavaLexer.RETURN,
+          MiniJavaLexer.NULL,
+          MiniJavaLexer.NEW,
+          MiniJavaLexer.IF,
+          MiniJavaLexer.ELSE,
+          MiniJavaLexer.WHILE,
+          MiniJavaLexer.EXTENDS,
+          MiniJavaLexer.IMPLEMENTS:
+            color = MiniJavaColours.KEYWORD_COLOUR;
+            break;
+
+          case MiniJavaLexer.CHAR_LITERAL:
+            color = MiniJavaColours.CHAR_LITERAL_COLOUR;
+            break;
+
+          case MiniJavaLexer.LINE_COMMENT:
+            color = MiniJavaColours.LINE_COMMENT_COLOUR;
+            break;
+
+          case MiniJavaLexer.JAVADOC_COMMENT:
+            color = MiniJavaColours.JAVADOC_COMMENT_COLOUR;
+            break;
+
+          case MiniJavaLexer.BLOCK_COMMENT:
+            color = MiniJavaColours.BLOCK_COMMENT_COLOUR;
+            break;
+
+          case MiniJavaLexer.AT:
+            if (i + 1 < tokens.size()) {
+              var next = tokens.get(i + 1);
+              if (next.getType() == MiniJavaLexer.IDENTIFIER) {
+                HighlightRegion region =
+                    new HighlightRegion(
+                        current.getStartIndex(),
+                        next.getStopIndex() + 1,
+                        MiniJavaColours.ANNOTATION_COLOUR);
+                matches.add(region);
+                continue;
+              }
+            }
+            break;
+        }
+
+        if (color != null) {
+          HighlightRegion region =
+              new HighlightRegion(current.getStartIndex(), current.getStopIndex() + 1, color);
+          matches.add(region);
+        }
+      }
+    }
+    return matches;
   }
 }
